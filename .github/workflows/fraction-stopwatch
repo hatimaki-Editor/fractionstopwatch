@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Fraction Stopwatch</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#dbeafe,#f0f9ff);
+    font-family: "Segoe UI", "Helvetica Neue", monospace;
+}
+
+/* ===== コンテナ ===== */
+.container{
+    text-align:center;
+    background:white;
+    padding:60px;
+    border-radius:30px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* ===== 分数表示 ===== */
+.time{
+    font-size:70px;
+    min-height:160px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-variant-numeric: tabular-nums;
+    color:#1e3a8a;
+}
+
+/* 分数 */
+.fraction{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:240px; /* 完全固定幅 */
+}
+
+.numerator, .denominator{
+    width:240px;
+    text-align:center;
+}
+
+.bar{
+    width:240px;
+    height:3px;
+    background:#1e3a8a;
+    margin:6px 0;
+}
+
+/* ===== ボタン ===== */
+.buttons button{
+    margin:10px;
+    padding:14px 28px;
+    border:none;
+    border-radius:14px;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.2s;
+    background:#3b82f6;
+    color:white;
+}
+
+.buttons button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 15px rgba(59,130,246,0.3);
+}
+
+.stop{
+    background:#ef4444;
+}
+
+.reset{
+    background:#64748b;
+}
+
+/* ===== スイッチ ===== */
+.switch{
+    margin-top:35px;
+}
+
+.toggle{
+    position:relative;
+    display:inline-block;
+    width:70px;
+    height:34px;
+}
+
+.toggle input{
+    display:none;
+}
+
+.slider{
+    position:absolute;
+    top:0; left:0; right:0; bottom:0;
+    background:#cbd5e1;
+    border-radius:34px;
+    transition:0.3s;
+}
+
+.slider:before{
+    content:"";
+    position:absolute;
+    height:26px;
+    width:26px;
+    left:4px;
+    bottom:4px;
+    background:white;
+    border-radius:50%;
+    transition:0.3s;
+}
+
+input:checked + .slider{
+    background:#3b82f6;
+}
+
+input:checked + .slider:before{
+    transform:translateX(36px);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="time" id="display"></div>
+
+    <div class="buttons">
+        <button onclick="start()">Start</button>
+        <button class="stop" onclick="stop()">Stop</button>
+        <button class="reset" onclick="reset()">Reset</button>
+    </div>
+
+    <div class="switch">
+        <label class="toggle">
+            <input type="checkbox" id="modeSwitch" onchange="updateDisplay()">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+</div>
+
+<script>
+let startTime = 0;
+let elapsed = 0;
+let interval = null;
+
+/* 最大公約数 */
+function gcd(a,b){
+    return b ? gcd(b, a % b) : a;
+}
+
+/* 1/100秒単位に変換 */
+function toFraction(ms){
+    let totalHundredths = Math.floor(ms / 10); // 0.01秒単位
+    let numerator = totalHundredths;
+    let denominator = 100;
+
+    let divisor = gcd(numerator, denominator);
+    return {
+        numerator: numerator/divisor,
+        denominator: denominator/divisor
+    };
+}
+
+function updateDisplay(){
+    let fraction = toFraction(elapsed);
+    let isMixed = document.getElementById("modeSwitch").checked;
+    let display = document.getElementById("display");
+
+    if(isMixed){
+        let whole = Math.floor(fraction.numerator / fraction.denominator);
+        let remainder = fraction.numerator % fraction.denominator;
+
+        if(remainder === 0){
+            display.innerHTML = `<div>${whole}</div>`;
+            return;
+        }
+
+        if(whole === 0){
+            display.innerHTML = makeFraction(remainder, fraction.denominator);
+        }else{
+            display.innerHTML = `
+                <div style="display:flex;align-items:center;">
+                    <div style="width:80px;text-align:right;margin-right:15px;">
+                        ${whole}
+                    </div>
+                    ${makeFraction(remainder, fraction.denominator)}
+                </div>
+            `;
+        }
+
+    }else{
+        display.innerHTML = makeFraction(fraction.numerator, fraction.denominator);
+    }
+}
+
+function makeFraction(num, den){
+    return `
+        <div class="fraction">
+            <div class="numerator">${num}</div>
+            <div class="bar"></div>
+            <div class="denominator">${den}</div>
+        </div>
+    `;
+}
+
+function start(){
+    if(interval) return;
+    startTime = Date.now() - elapsed;
+    interval = setInterval(()=>{
+        elapsed = Date.now() - startTime;
+        updateDisplay();
+    },10);
+}
+
+function stop(){
+    clearInterval(interval);
+    interval = null;
+}
+
+function reset(){
+    stop();
+    elapsed = 0;
+    updateDisplay();
+}
+
+updateDisplay();
+</script>
+
+</body>
+</html>
